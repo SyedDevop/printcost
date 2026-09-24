@@ -143,8 +143,8 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
 .disabled .control { opacity: .45; }
 
 /* Summary */
-.summary { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
-@media (max-width: 880px) { .summary { position: static; } }
+.summary-col { display: grid; gap: 24px; position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+@media (max-width: 880px) { .summary-col { position: static; } }
 .summary h2 { margin-bottom: 18px; }
 .spool-wrap { display: grid; place-items: center; margin: 4px 0 20px; }
 .spool { width: 100%; max-width: 280px; height: auto; display: block; }
@@ -173,6 +173,36 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
 .stat { background: var(--field); border-radius: 8px; padding: 10px 12px; }
 .stat b { display: block; font-variant-numeric: tabular-nums; font-size: 1rem; }
 .stat span { color: var(--muted); font-size: 0.78rem; }
+
+/* Pricing panel charts */
+.chart-block { margin-bottom: 22px; }
+.chart-block:last-of-type { margin-bottom: 0; }
+.chart-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; font-weight: 600; font-size: 0.92rem; }
+.chart-label-row b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chart-subtext { margin-top: 8px; color: var(--muted); font-size: 0.8rem; }
+
+.spools-track { display: flex; gap: 6px; }
+.spool-seg { flex: 1; height: 30px; background: var(--field); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.spool-fill { height: 100%; background: var(--mat); border-radius: 5px 0 0 5px; }
+.spools-track.empty .spool-seg { flex: none; width: 100%; }
+
+.price-bar { display: flex; height: 30px; border-radius: 8px; overflow: hidden; background: var(--field); border: 1px solid var(--line); }
+.price-bar-seg { height: 100%; transition: width .2s ease; }
+.price-bar-seg.cost { background: var(--mat); }
+.price-bar-seg.profit { background: var(--maint); }
+.legend-row { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; font-size: 0.82rem; color: var(--muted); }
+.legend-row b { color: var(--ink); font-variant-numeric: tabular-nums; margin-left: 4px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+.dot.cost { background: var(--mat); }
+.dot.profit { background: var(--maint); }
+
+.pricing { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.price-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 0.92rem; }
+.price-row span { color: var(--muted); }
+.price-row b { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.price-row--total { padding-top: 8px; border-top: 1px dashed var(--line); }
+.price-row--total span { color: var(--ink); font-weight: 600; }
+.price-row--total b { font-size: 1.15rem; font-weight: 800; }
 
 .notes { margin-top: 28px; color: var(--muted); font-size: 0.85rem; max-width: 72ch; }
 .notes p { margin: 0 0 8px; }
@@ -209,10 +239,10 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
     <div class="inputs">
       <section class="panel" aria-labelledby="job-h">
         <h2 id="job-h">Print job</h2>
-        <p class="hint">Copy these from the slice estimate in Creality Print.</p>
+        <p class="hint">Copy these from the slice estimate in Creality Print, for one piece.</p>
         <div class="fields">
           <div class="full" id="f-duration">
-            <span class="label" id="dur-label">Print duration</span>
+            <span class="label" id="dur-label">Print duration (per piece)</span>
             <div class="duo" role="group" aria-labelledby="dur-label">
               <div class="control"><input id="hours" type="number" inputmode="decimal" min="0" step="1" aria-label="Hours"><span class="unit">h</span></div>
               <div class="control"><input id="minutes" type="number" inputmode="numeric" min="0" max="59" step="1" aria-label="Minutes"><span class="unit">min</span></div>
@@ -220,7 +250,7 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
             <span class="err">Enter hours and minutes of 0 or more.</span>
           </div>
           <div id="f-grams">
-            <label for="grams">Filament used</label>
+            <label for="grams">Filament used (per piece)</label>
             <div class="control"><input id="grams" type="number" inputmode="decimal" min="0" step="1"><span class="unit">g</span></div>
             <span class="err">Enter a weight of 0 g or more.</span>
           </div>
@@ -283,10 +313,31 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
           </div>
         </div>
       </section>
+
+      <section class="panel" aria-labelledby="price-in-h">
+        <h2 id="price-in-h">Batch &amp; pricing</h2>
+        <p class="hint">How many pieces the quotation is for and the margin you want to sell at.</p>
+        <div class="fields">
+          <div id="f-pieces">
+            <label for="pieces">Number of pieces</label>
+            <div class="control"><input id="pieces" type="number" inputmode="numeric" min="1" step="1"><span class="unit">pcs</span></div>
+            <span class="field-note">Quantity required for this quotation. Scales up the per-piece time and filament above.</span>
+            <span class="err">Enter 1 or more pieces.</span>
+          </div>
+          <div id="f-margin">
+            <label for="margin">Profit margin</label>
+            <div class="control"><input id="margin" type="number" inputmode="decimal" min="0" max="99" step="1"><span class="unit">%</span></div>
+            <span class="field-note">0% just shows your cost.</span>
+            <span class="err">Enter a margin between 0 and 99%.</span>
+          </div>
+        </div>
+      </section>
     </div>
 
+    <div class="summary-col">
     <section class="panel summary" id="summary" aria-labelledby="sum-h">
       <h2 id="sum-h">Cost breakdown</h2>
+      <p class="hint">Cost of a single piece.</p>
       <div class="spool-wrap">
         <svg class="spool" id="spool" viewBox="0 0 240 240" role="img" aria-labelledby="spool-desc">
           <desc id="spool-desc">Pie chart of cost shares</desc>
@@ -310,6 +361,38 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
         <div class="stat"><b id="s-gram">0</b><span>per gram printed</span></div>
       </div>
     </section>
+
+    <section class="panel summary" id="pricingPanel" aria-labelledby="price-h">
+      <h2 id="price-h">Pricing &amp; spools</h2>
+      <p class="hint">Totals for the whole batch, all pieces included.</p>
+
+      <div class="chart-block">
+        <div class="chart-label-row"><span>Filament spools</span><b id="s-spools">0 spools</b></div>
+        <div class="spools-track" id="spoolsTrack" role="img" aria-labelledby="spools-desc"></div>
+        <p id="spools-desc" class="chart-subtext" aria-live="polite">Enter a spool weight to see this.</p>
+      </div>
+
+      <div class="chart-block">
+        <div class="chart-label-row"><span>Sell price per piece</span><b id="s-sellpiece">$0.00</b></div>
+        <div class="price-bar" role="img" aria-labelledby="price-bar-desc">
+          <div class="price-bar-seg cost" id="priceBarCost"></div>
+          <div class="price-bar-seg profit" id="priceBarProfit"></div>
+        </div>
+        <p id="price-bar-desc" class="chart-subtext" style="display:none"></p>
+        <div class="legend-row">
+          <span><i class="dot cost"></i>Cost<b id="s-costpiece">$0.00</b></span>
+          <span><i class="dot profit"></i>Profit<b id="s-profitpiece">$0.00</b></span>
+        </div>
+      </div>
+
+      <div class="pricing">
+        <div class="price-row"><span>Pieces</span><b id="s-pieces">1</b></div>
+        <div class="price-row"><span>Total cost</span><b id="s-costtotal">$0.00</b></div>
+        <div class="price-row"><span>Total profit</span><b id="s-profittotal">$0.00</b></div>
+        <div class="price-row price-row--total"><span>Total selling price</span><b id="s-selltotal">$0.00</b></div>
+      </div>
+    </section>
+    </div>
   </div>
 
   <div class="notes">
@@ -342,11 +425,11 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
     return Math.round(x * f) / f;
   }
   var DEFAULTS = {
-    hours: 3, minutes: 30, grams: 85, material: "PLA", currency: "INR",
-    tariff: 8, power: 140, spoolCost: 1299, spoolWeight: 1000, wearOn: true, wearRate: 4
+    hours: 3, minutes: 30, grams: 85, pieces: 1, material: "PLA", currency: "INR",
+    tariff: 8, power: 140, spoolCost: 1299, spoolWeight: 1000, wearOn: true, wearRate: 4, margin: 30
   };
   var KEY = "hicombo-cost-v2";
-  var ids = ["hours","minutes","grams","tariff","power","spoolCost","spoolWeight","wearRate"];
+  var ids = ["hours","minutes","grams","pieces","tariff","power","spoolCost","spoolWeight","wearRate","margin"];
   var el = function (id) { return document.getElementById(id); };
   var state = load();
 
@@ -434,15 +517,17 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
   function mark(fieldId, bad) { el(fieldId).classList.toggle("invalid", bad); }
 
   function calc() {
-    var h = num("hours"), m = num("minutes"), g = num("grams"), t = num("tariff"),
-        p = num("power"), sc = num("spoolCost"), sw = num("spoolWeight"), wr = num("wearRate");
+    var h = num("hours"), m = num("minutes"), g = num("grams"), pc = num("pieces"), t = num("tariff"),
+        p = num("power"), sc = num("spoolCost"), sw = num("spoolWeight"), wr = num("wearRate"), mg = num("margin");
     var badDur = !(h >= 0) || !(m >= 0);
     mark("f-duration", badDur);
     mark("f-grams", !(g >= 0));
+    mark("f-pieces", !(pc >= 1));
     mark("f-tariff", !(t >= 0));
     mark("f-power", !(p >= 0));
     mark("f-spoolcost", !(sc >= 0));
     mark("f-spoolweight", !(sw > 0));
+    mark("f-margin", !(mg >= 0) || mg > 99);
     state.wearOn = el("wearOn").checked;
     mark("f-wear", state.wearOn && !(wr >= 0));
     el("f-wear").classList.toggle("disabled", !state.wearOn);
@@ -452,23 +537,29 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
     state.currency = el("currency").value;
     save();
 
-    var hours = (h >= 0 ? h : 0) + (m >= 0 ? m : 0) / 60;
-    var kwh = (p >= 0 ? p : 0) / 1000 * hours;
+    var pieces = pc >= 1 ? pc : 1;
+    var hoursPerPiece = (h >= 0 ? h : 0) + (m >= 0 ? m : 0) / 60;
+    var gramsPerPiece = g >= 0 ? g : 0;
+    var totalGrams = gramsPerPiece * pieces;
+
+    // Cost breakdown is always for a single piece.
+    var kwh = (p >= 0 ? p : 0) / 1000 * hoursPerPiece;
     var elec = kwh * (t >= 0 ? t : 0);
     var perGram = (sw > 0 && sc >= 0) ? sc / sw : 0;
-    var mat = (g >= 0 ? g : 0) * perGram;
-    var maint = state.wearOn && wr >= 0 ? wr * hours : 0;
-    var total = elec + mat + maint;
+    var mat = gramsPerPiece * perGram;
+    var maint = state.wearOn && wr >= 0 ? wr * hoursPerPiece : 0;
+    var totalPiece = elec + mat + maint;
+    var totalBatch = totalPiece * pieces;
 
     var items = [
       { key: "elec", name: "Electricity", val: elec, color: "var(--elec)",
         detail: kwh.toFixed(2) + " kWh × " + money(t >= 0 ? t : 0) + "/kWh" },
       { key: "mat", name: "Material", val: mat, color: "var(--mat)",
-        detail: (g >= 0 ? g : 0) + " g × " + money(perGram) + "/g (" + state.material + ")" },
+        detail: gramsPerPiece + " g × " + money(perGram) + "/g (" + state.material + ")" },
       { key: "maint", name: "Maintenance", val: maint, color: "var(--maint)",
-        detail: state.wearOn ? fmtDur(hours) + " × " + money(wr >= 0 ? wr : 0) + "/h" : "Not included" }
+        detail: state.wearOn ? fmtDur(hoursPerPiece) + " × " + money(wr >= 0 ? wr : 0) + "/h" : "Not included" }
     ];
-    render(items, total, kwh, hours);
+    render(items, totalPiece, kwh, hoursPerPiece, gramsPerPiece, totalGrams, totalBatch, pieces);
   }
 
   function fmtDur(hours) {
@@ -477,7 +568,7 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
     return hh + " h " + (mm ? mm + " min" : "");
   }
 
-  function render(items, total, kwh, hours) {
+  function render(items, total, kwh, hours, gramsPerPiece, totalGrams, totalBatch, pieces) {
     document.querySelectorAll(".cur-sym").forEach(function (s) { s.textContent = symbol(); });
     var C = 2 * Math.PI * 80, offset = 0, segs = el("segs");
     segs.innerHTML = "";
@@ -524,8 +615,56 @@ label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bot
     el("spool-desc").textContent = "Pie chart of cost shares. " + items.map(function (i) { return i.name + " " + money2(i.val); }).join(", ") + ". Total " + t + ".";
     el("s-kwh").textContent = kwh.toFixed(2) + " kWh";
     el("s-hour").textContent = hours > 0 ? money(total / hours) : "–";
-    var g = num("grams");
-    el("s-gram").textContent = g > 0 ? money(total / g) : "–";
+    el("s-gram").textContent = gramsPerPiece > 0 ? money(total / gramsPerPiece) : "–";
+
+    renderPricing(total, totalBatch, totalGrams, pieces);
+  }
+
+  function renderPricing(costPerPiece, totalBatch, totalGrams, pieces) {
+    var sw = num("spoolWeight");
+    var spools = (sw > 0 && totalGrams >= 0) ? Math.ceil(totalGrams / sw) : 0;
+    el("s-spools").textContent = spools + (spools === 1 ? " spool" : " spools");
+
+    var track = el("spoolsTrack"), desc = el("spools-desc");
+    track.innerHTML = "";
+    track.classList.toggle("empty", spools === 0);
+    if (spools > 0) {
+      for (var i = 0; i < spools; i++) {
+        var remaining = totalGrams - i * sw;
+        var pct = Math.max(0, Math.min(100, (remaining / sw) * 100));
+        var seg = document.createElement("div");
+        seg.className = "spool-seg";
+        var fill = document.createElement("div");
+        fill.className = "spool-fill";
+        fill.style.width = pct + "%";
+        seg.appendChild(fill);
+        track.appendChild(seg);
+      }
+      desc.textContent = Math.round(totalGrams) + " g used of " + Math.round(spools * sw) + " g capacity across " + spools + (spools === 1 ? " spool" : " spools") + " (" + Math.round(sw) + " g each).";
+    } else {
+      desc.textContent = "Enter a spool weight to see this.";
+    }
+
+    el("s-pieces").textContent = pieces;
+    var mg = num("margin");
+    var marginFrac = (mg >= 0 && mg < 100) ? mg / 100 : 0;
+    var sellPerPiece = marginFrac > 0 ? costPerPiece / (1 - marginFrac) : costPerPiece;
+    var profitPerPiece = sellPerPiece - costPerPiece;
+    var sellTotal = sellPerPiece * pieces;
+    var profitTotal = profitPerPiece * pieces;
+
+    el("s-costpiece").textContent = money2(costPerPiece);
+    el("s-costtotal").textContent = money2(totalBatch);
+    el("s-sellpiece").textContent = money2(sellPerPiece);
+    el("s-profitpiece").textContent = money2(profitPerPiece);
+    el("s-profittotal").textContent = money2(profitTotal);
+    el("s-selltotal").textContent = money2(sellTotal);
+
+    var costPct = sellPerPiece > 0 ? Math.max(0, Math.min(100, (costPerPiece / sellPerPiece) * 100)) : 100;
+    var profitPct = sellPerPiece > 0 ? 100 - costPct : 0;
+    el("priceBarCost").style.width = costPct + "%";
+    el("priceBarProfit").style.width = profitPct + "%";
+    el("price-bar-desc").textContent = "Cost " + money2(costPerPiece) + " and profit " + money2(profitPerPiece) + " make up the " + money2(sellPerPiece) + " sell price per piece.";
   }
 
   function hot(key) {
