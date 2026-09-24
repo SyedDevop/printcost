@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Creality Hi Combo print cost calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #E9ECEF;
+  --surface: #FFFFFF;
+  --field: #F5F7F9;
+  --ink: #18202B;
+  --muted: #5B6573;
+  --line: #D3D8DE;
+  --accent: #2E63D6;
+  --elec: #E0A106;
+  --mat: #2E63D6;
+  --maint: #1F9E89;
+  --wind: #18202B;
+  --error: #C2371F;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181E; --surface: #1D232B; --field: #252C35; --ink: #E8ECF1; --muted: #9AA5B3;
+    --line: #313A46; --accent: #6A94F2; --elec: #F2B52A; --mat: #5B8CF0; --maint: #3CC0A8;
+    --wind: #000000; --error: #FF7A61; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14181E; --surface: #1D232B; --field: #252C35; --ink: #E8ECF1; --muted: #9AA5B3;
+  --line: #313A46; --accent: #6A94F2; --elec: #F2B52A; --mat: #5B8CF0; --maint: #3CC0A8;
+  --wind: #000000; --error: #FF7A61; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 32px 20px 96px; }
+
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; margin-bottom: 28px; }
+h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1;
+  font-weight: 800;
+  font-stretch: 118%;
+  letter-spacing: -0.02em;
+}
+.sub { margin: 10px 0 0; color: var(--muted); max-width: 56ch; }
+.head-actions { display: flex; gap: 10px; align-items: center; }
+
+button, select, input { font: inherit; color: inherit; }
+.btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.btn:hover { border-color: var(--muted); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 24px; align-items: start; }
+@media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+.inputs { display: grid; gap: 24px; }
+section.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+}
+.panel h2 { margin: 0 0 4px; font-size: 1.25rem; font-weight: 700; font-stretch: 110%; }
+.panel .hint { margin: 0 0 20px; color: var(--muted); font-size: 0.92rem; }
+
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 16px; }
+.fields .full { grid-column: 1 / -1; }
+@media (max-width: 520px) { .fields { grid-template-columns: 1fr; } section.panel { padding: 20px 16px; } }
+
+label, .label { display: block; font-weight: 600; font-size: 0.92rem; margin-bottom: 6px; }
+.field-note { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 5px; }
+.err { display: none; color: var(--error); font-size: 0.82rem; margin-top: 5px; }
+.invalid .err { display: block; }
+.invalid .control { border-color: var(--error); }
+
+.control {
+  display: flex; align-items: center;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.control:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.control input, .control select {
+  flex: 1; min-width: 0;
+  border: 0; background: transparent;
+  padding: 11px 12px;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.control select { cursor: pointer; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 36px; }
+.unit { padding: 0 12px; color: var(--muted); font-size: 0.88rem; white-space: nowrap; }
+.pre { padding: 0 0 0 12px; color: var(--muted); }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.materials { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  border: 1px solid var(--line);
+  background: var(--field);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.chip[aria-checked="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.preset-note { color: var(--muted); font-size: 0.82rem; margin-top: 8px; min-height: 1.2em; }
+
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.switch { position: relative; width: 44px; height: 26px; flex: none; }
+.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: background .15s; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.switch input:checked + span { background: var(--accent); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+.disabled .control { opacity: .45; }
+
+/* Summary */
+.summary { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+@media (max-width: 880px) { .summary { position: static; } }
+.summary h2 { margin-bottom: 18px; }
+.spool-wrap { display: grid; place-items: center; margin: 4px 0 20px; }
+.spool { width: 100%; max-width: 280px; height: auto; display: block; }
+.spool .seg { transition: stroke-dasharray .35s ease, stroke-dashoffset .35s ease, opacity .15s; cursor: default; }
+.spool.hovering .seg:not(.hot) { opacity: .35; }
+.hub-total { font-weight: 800; font-stretch: 112%; font-variant-numeric: tabular-nums; fill: var(--ink); }
+.hub-label { fill: var(--muted); font-size: 11px; }
+
+.rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.rows li {
+  display: grid; grid-template-columns: 14px 1fr auto; gap: 4px 12px; align-items: baseline;
+  padding: 12px 4px; border-bottom: 1px solid var(--line);
+  border-radius: 6px;
+}
+.rows li.hot { background: var(--field); }
+.sw { width: 12px; height: 12px; border-radius: 3px; align-self: center; }
+.rname { font-weight: 600; }
+.ramt { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.rdetail { grid-column: 2; color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.rpct { grid-column: 3; color: var(--muted); font-size: 0.82rem; text-align: right; font-variant-numeric: tabular-nums; }
+.total-row { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 4px 4px; }
+.total-row .t-label { font-weight: 700; font-size: 1.05rem; }
+.total-row .t-amt { font-weight: 800; font-stretch: 115%; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; }
+.stat { background: var(--field); border-radius: 8px; padding: 10px 12px; }
+.stat b { display: block; font-variant-numeric: tabular-nums; font-size: 1rem; }
+.stat span { color: var(--muted); font-size: 0.78rem; }
+
+.notes { margin-top: 28px; color: var(--muted); font-size: 0.85rem; max-width: 72ch; }
+.notes p { margin: 0 0 8px; }
+
+/* Mobile total bar */
+.bar {
+  display: none;
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--surface);
+  align-items: center; justify-content: space-between; gap: 12px;
+  z-index: 10;
+}
+.bar a { color: inherit; font-weight: 600; font-size: 0.9rem; }
+.bar b { font-size: 1.35rem; font-stretch: 112%; font-variant-numeric: tabular-nums; }
+@media (max-width: 880px) { .bar { display: flex; } }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Hi Combo print cost</h1>
+      <p class="sub">Work out what a print on the Creality Hi Combo really costs in electricity, filament and machine wear. Defaults are set for a standard PLA job.</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn" id="reset" type="button">Reset to Hi Combo defaults</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="inputs">
+      <section class="panel" aria-labelledby="job-h">
+        <h2 id="job-h">Print job</h2>
+        <p class="hint">Copy these from the slice estimate in Creality Print.</p>
+        <div class="fields">
+          <div class="full" id="f-duration">
+            <span class="label" id="dur-label">Print duration</span>
+            <div class="duo" role="group" aria-labelledby="dur-label">
+              <div class="control"><input id="hours" type="number" inputmode="decimal" min="0" step="1" aria-label="Hours"><span class="unit">h</span></div>
+              <div class="control"><input id="minutes" type="number" inputmode="numeric" min="0" max="59" step="1" aria-label="Minutes"><span class="unit">min</span></div>
+            </div>
+            <span class="err">Enter hours and minutes of 0 or more.</span>
+          </div>
+          <div id="f-grams">
+            <label for="grams">Filament used</label>
+            <div class="control"><input id="grams" type="number" inputmode="decimal" min="0" step="1"><span class="unit">g</span></div>
+            <span class="err">Enter a weight of 0 g or more.</span>
+          </div>
+          <div id="f-currency">
+            <label for="currency">Currency</label>
+            <div class="control">
+              <select id="currency">
+                <option value="INR">Indian rupee (₹)</option>
+                <option value="USD">US dollar ($)</option>
+                <option value="EUR">Euro (€)</option>
+                <option value="GBP">British pound (£)</option>
+                <option value="AUD">Australian dollar (A$)</option>
+                <option value="CAD">Canadian dollar (C$)</option>
+                <option value="JPY">Japanese yen (¥)</option>
+              </select>
+            </div>
+            <span class="field-note">Changes the symbol only. Material presets convert from rupees at approximate rates.</span>
+          </div>
+          <div class="full">
+            <span class="label" id="mat-label">Material</span>
+            <div class="materials" role="radiogroup" aria-labelledby="mat-label" id="materials"></div>
+            <div class="preset-note" id="preset-note" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="ops-h">
+        <h2 id="ops-h">Running costs</h2>
+        <p class="hint">Your local rates. Choosing a material fills in typical spool price and power draw.</p>
+        <div class="fields">
+          <div id="f-tariff">
+            <label for="tariff">Electricity tariff</label>
+            <div class="control"><span class="pre cur-sym">$</span><input id="tariff" type="number" inputmode="decimal" min="0" step="0.5"><span class="unit">per kWh</span></div>
+            <span class="err">Enter a tariff of 0 or more.</span>
+          </div>
+          <div id="f-power">
+            <label for="power">Average power draw</label>
+            <div class="control"><input id="power" type="number" inputmode="decimal" min="0" step="5"><span class="unit">W</span></div>
+            <span class="field-note">Average over the job, not the 1150 W peak.</span>
+            <span class="err">Enter a power draw of 0 W or more.</span>
+          </div>
+          <div id="f-spoolcost">
+            <label for="spoolCost">Spool cost</label>
+            <div class="control"><span class="pre cur-sym">$</span><input id="spoolCost" type="number" inputmode="decimal" min="0" step="50"></div>
+            <span class="err">Enter a spool cost of 0 or more.</span>
+          </div>
+          <div id="f-spoolweight">
+            <label for="spoolWeight">Spool weight</label>
+            <div class="control"><input id="spoolWeight" type="number" inputmode="decimal" min="1" step="50"><span class="unit">g</span></div>
+            <span class="err">Enter a spool weight above 0 g.</span>
+          </div>
+          <div class="full" id="f-wear">
+            <div class="toggle-row">
+              <label for="wearOn" style="margin:0">Include printer wear and tear</label>
+              <span class="switch"><input id="wearOn" type="checkbox" role="switch"><span></span></span>
+            </div>
+            <div class="control" id="wear-control"><span class="pre cur-sym">$</span><input id="wearRate" type="number" inputmode="decimal" min="0" step="0.5" aria-label="Wear and tear rate per print hour"><span class="unit">per print hour</span></div>
+            <span class="field-note">Covers nozzles, build plates, belts, fans and PTFE tubes spread over their service life.</span>
+            <span class="err">Enter a wear rate of 0 or more.</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel summary" id="summary" aria-labelledby="sum-h">
+      <h2 id="sum-h">Cost breakdown</h2>
+      <div class="spool-wrap">
+        <svg class="spool" id="spool" viewBox="0 0 240 240" role="img" aria-labelledby="spool-desc">
+          <desc id="spool-desc">Pie chart of cost shares</desc>
+          <circle cx="120" cy="120" r="112" fill="none" stroke="var(--line)" stroke-width="3"/>
+          <circle cx="120" cy="120" r="80" fill="none" stroke="var(--field)" stroke-width="56"/>
+          <g id="segs" transform="rotate(-90 120 120)"></g>
+          <g id="winding" pointer-events="none"></g>
+          <circle cx="120" cy="120" r="50" fill="var(--surface)" stroke="var(--line)" stroke-width="3"/>
+          <text x="120" y="116" text-anchor="middle" class="hub-label">Total</text>
+          <text x="120" y="138" text-anchor="middle" class="hub-total" id="hub-total" font-size="20">$0.00</text>
+        </svg>
+      </div>
+      <ul class="rows" id="rows"></ul>
+      <div class="total-row" aria-live="polite">
+        <span class="t-label">Total cost</span>
+        <span class="t-amt" id="total">$0.00</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="s-kwh">0</b><span>energy used</span></div>
+        <div class="stat"><b id="s-hour">0</b><span>per print hour</span></div>
+        <div class="stat"><b id="s-gram">0</b><span>per gram printed</span></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="notes">
+    <p>The Hi Combo is rated at 1150 W on 220 V and 390 W on 110 V, but that rating reflects the AC heated bed at full power during warm-up. Once the bed is at temperature the printer cycles the heater, so the average over a whole PLA job is far lower. The defaults assume roughly 140 W for PLA including the CFS unit, rising for materials with hotter beds.</p>
+    <p>For the most accurate electricity figure, run a print through a plug-in energy meter and enter its average wattage. Your inputs are remembered in this browser.</p>
+  </div>
+</div>
+
+<div class="bar" aria-hidden="true">
+  <span>Total <b id="bar-total">$0.00</b></span>
+  <a href="#summary">See breakdown</a>
+</div>
+
+<script>
+(function () {
+  // Preset prices are in Indian rupees (INR)
+  var MATERIALS = {
+    "PLA":       { spoolCost: 1299, power: 140, wear: 4, note: "Nozzle 210 °C, bed 60 °C" },
+    "Hyper PLA": { spoolCost: 1499, power: 145, wear: 4, note: "High-speed PLA, bed 60 °C" },
+    "PETG":      { spoolCost: 1399, power: 175, wear: 4, note: "Nozzle 240 °C, bed 80 °C" },
+    "ABS":       { spoolCost: 1399, power: 230, wear: 5, note: "Nozzle 260 °C, bed 100 °C" },
+    "ASA":       { spoolCost: 1899, power: 235, wear: 5, note: "Nozzle 260 °C, bed 100 °C" },
+    "PLA-CF":    { spoolCost: 2499, power: 150, wear: 8, note: "Abrasive, so wear rate is higher" }
+  };
+  // Approximate value of 1 INR in each currency, used only when a preset is applied
+  var FROM_INR = { INR: 1, USD: 0.0114, EUR: 0.0098, GBP: 0.0085, AUD: 0.0173, CAD: 0.0158, JPY: 1.68 };
+  function conv(v, decimals) {
+    var x = v * (FROM_INR[state.currency] || 1);
+    var f = Math.pow(10, state.currency === "INR" || state.currency === "JPY" ? 0 : decimals);
+    return Math.round(x * f) / f;
+  }
+  var DEFAULTS = {
+    hours: 3, minutes: 30, grams: 85, material: "PLA", currency: "INR",
+    tariff: 8, power: 140, spoolCost: 1299, spoolWeight: 1000, wearOn: true, wearRate: 4
+  };
+  var KEY = "hicombo-cost-v2";
+  var ids = ["hours","minutes","grams","tariff","power","spoolCost","spoolWeight","wearRate"];
+  var el = function (id) { return document.getElementById(id); };
+  var state = load();
+
+  // Build material chips
+  var matBox = el("materials");
+  Object.keys(MATERIALS).forEach(function (name) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = name;
+    b.setAttribute("role", "radio"); b.dataset.mat = name;
+    b.addEventListener("click", function () { chooseMaterial(name, true); });
+    b.addEventListener("keydown", function (e) {
+      var keys = Object.keys(MATERIALS), i = keys.indexOf(name);
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); var n = keys[(i + 1) % keys.length]; chooseMaterial(n, true); matBox.querySelector('[data-mat="' + n + '"]').focus(); }
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); var p = keys[(i - 1 + keys.length) % keys.length]; chooseMaterial(p, true); matBox.querySelector('[data-mat="' + p + '"]').focus(); }
+    });
+    matBox.appendChild(b);
+  });
+
+  // Spool winding texture
+  var wind = el("winding"), svgNS = "http://www.w3.org/2000/svg";
+  for (var r = 54.5; r <= 107; r += 3.5) {
+    var c = document.createElementNS(svgNS, "circle");
+    c.setAttribute("cx", 120); c.setAttribute("cy", 120); c.setAttribute("r", r);
+    c.setAttribute("fill", "none"); c.setAttribute("stroke", "var(--wind)");
+    c.setAttribute("stroke-opacity", "0.09"); c.setAttribute("stroke-width", "0.8");
+    wind.appendChild(c);
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var s = JSON.parse(raw); return Object.assign({}, DEFAULTS, s); }
+    } catch (e) {}
+    return Object.assign({}, DEFAULTS);
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  function fillInputs() {
+    ids.forEach(function (id) { el(id).value = state[id]; });
+    el("currency").value = state.currency;
+    el("wearOn").checked = !!state.wearOn;
+    chooseMaterial(state.material, false);
+  }
+
+  function chooseMaterial(name, applyPreset) {
+    state.material = name;
+    matBox.querySelectorAll(".chip").forEach(function (b) {
+      var on = b.dataset.mat === name;
+      b.setAttribute("aria-checked", on ? "true" : "false");
+      b.tabIndex = on ? 0 : -1;
+    });
+    var m = MATERIALS[name];
+    if (applyPreset) {
+      var sc = conv(m.spoolCost, 2), wr = conv(m.wear, 2);
+      state.spoolCost = sc; state.power = m.power; state.wearRate = wr;
+      el("spoolCost").value = sc; el("power").value = m.power; el("wearRate").value = wr;
+      el("preset-note").textContent = name + " preset applied: " + m.note + ". Spool cost, power draw and wear rate updated.";
+    } else {
+      el("preset-note").textContent = m.note + ".";
+    }
+    calc();
+  }
+
+  function money(v) {
+    var digits = state.currency === "JPY" ? 0 : (Math.abs(v) < 1 && v !== 0 ? 3 : 2);
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: state.currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
+    } catch (e) { return v.toFixed(digits); }
+  }
+  function money2(v) {
+    var digits = state.currency === "JPY" ? 0 : 2;
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: state.currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
+    } catch (e) { return v.toFixed(digits); }
+  }
+  function symbol() {
+    try {
+      var parts = new Intl.NumberFormat(undefined, { style: "currency", currency: state.currency }).formatToParts(0);
+      var s = parts.find(function (p) { return p.type === "currency"; });
+      return s ? s.value : "$";
+    } catch (e) { return "$"; }
+  }
+
+  function num(id) { var v = parseFloat(el(id).value); return isNaN(v) ? NaN : v; }
+  function mark(fieldId, bad) { el(fieldId).classList.toggle("invalid", bad); }
+
+  function calc() {
+    var h = num("hours"), m = num("minutes"), g = num("grams"), t = num("tariff"),
+        p = num("power"), sc = num("spoolCost"), sw = num("spoolWeight"), wr = num("wearRate");
+    var badDur = !(h >= 0) || !(m >= 0);
+    mark("f-duration", badDur);
+    mark("f-grams", !(g >= 0));
+    mark("f-tariff", !(t >= 0));
+    mark("f-power", !(p >= 0));
+    mark("f-spoolcost", !(sc >= 0));
+    mark("f-spoolweight", !(sw > 0));
+    state.wearOn = el("wearOn").checked;
+    mark("f-wear", state.wearOn && !(wr >= 0));
+    el("f-wear").classList.toggle("disabled", !state.wearOn);
+    el("wearRate").disabled = !state.wearOn;
+
+    ids.forEach(function (id) { var v = num(id); if (!isNaN(v)) state[id] = v; });
+    state.currency = el("currency").value;
+    save();
+
+    var hours = (h >= 0 ? h : 0) + (m >= 0 ? m : 0) / 60;
+    var kwh = (p >= 0 ? p : 0) / 1000 * hours;
+    var elec = kwh * (t >= 0 ? t : 0);
+    var perGram = (sw > 0 && sc >= 0) ? sc / sw : 0;
+    var mat = (g >= 0 ? g : 0) * perGram;
+    var maint = state.wearOn && wr >= 0 ? wr * hours : 0;
+    var total = elec + mat + maint;
+
+    var items = [
+      { key: "elec", name: "Electricity", val: elec, color: "var(--elec)",
+        detail: kwh.toFixed(2) + " kWh × " + money(t >= 0 ? t : 0) + "/kWh" },
+      { key: "mat", name: "Material", val: mat, color: "var(--mat)",
+        detail: (g >= 0 ? g : 0) + " g × " + money(perGram) + "/g (" + state.material + ")" },
+      { key: "maint", name: "Maintenance", val: maint, color: "var(--maint)",
+        detail: state.wearOn ? fmtDur(hours) + " × " + money(wr >= 0 ? wr : 0) + "/h" : "Not included" }
+    ];
+    render(items, total, kwh, hours);
+  }
+
+  function fmtDur(hours) {
+    var hh = Math.floor(hours), mm = Math.round((hours - hh) * 60);
+    if (mm === 60) { hh++; mm = 0; }
+    return hh + " h " + (mm ? mm + " min" : "");
+  }
+
+  function render(items, total, kwh, hours) {
+    document.querySelectorAll(".cur-sym").forEach(function (s) { s.textContent = symbol(); });
+    var C = 2 * Math.PI * 80, offset = 0, segs = el("segs");
+    segs.innerHTML = "";
+    var rows = el("rows"); rows.innerHTML = "";
+    var nonZero = items.filter(function (i) { return i.val > 0; }).length;
+
+    items.forEach(function (it) {
+      var share = total > 0 ? it.val / total : 0;
+      if (share > 0) {
+        var len = share * C, gap = nonZero > 1 ? 2 : 0;
+        var c = document.createElementNS(svgNS, "circle");
+        c.setAttribute("cx", 120); c.setAttribute("cy", 120); c.setAttribute("r", 80);
+        c.setAttribute("fill", "none"); c.setAttribute("stroke", it.color); c.setAttribute("stroke-width", 56);
+        c.setAttribute("stroke-dasharray", Math.max(len - gap, 0.5) + " " + (C - Math.max(len - gap, 0.5)));
+        c.setAttribute("stroke-dashoffset", -offset);
+        c.setAttribute("class", "seg"); c.dataset.key = it.key;
+        var tt = document.createElementNS(svgNS, "title");
+        tt.textContent = it.name + ": " + money2(it.val) + " (" + Math.round(share * 100) + "%)";
+        c.appendChild(tt);
+        c.addEventListener("mouseenter", function () { hot(it.key); });
+        c.addEventListener("mouseleave", function () { hot(null); });
+        segs.appendChild(c);
+        offset += len;
+      }
+      var li = document.createElement("li");
+      li.dataset.key = it.key;
+      li.innerHTML = '<span class="sw" style="background:' + it.color + '"></span>' +
+        '<span class="rname">' + it.name + '</span>' +
+        '<span class="ramt">' + money2(it.val) + '</span>' +
+        '<span class="rdetail"></span>' +
+        '<span class="rpct">' + (total > 0 ? (share * 100).toFixed(1) : "0.0") + '%</span>';
+      li.querySelector(".rdetail").textContent = it.detail;
+      li.addEventListener("mouseenter", function () { hot(it.key); });
+      li.addEventListener("mouseleave", function () { hot(null); });
+      rows.appendChild(li);
+    });
+
+    var t = money2(total);
+    el("total").textContent = t;
+    el("bar-total").textContent = t;
+    var hub = el("hub-total");
+    hub.textContent = t;
+    hub.setAttribute("font-size", t.length > 9 ? 15 : t.length > 7 ? 18 : 21);
+    el("spool-desc").textContent = "Pie chart of cost shares. " + items.map(function (i) { return i.name + " " + money2(i.val); }).join(", ") + ". Total " + t + ".";
+    el("s-kwh").textContent = kwh.toFixed(2) + " kWh";
+    el("s-hour").textContent = hours > 0 ? money(total / hours) : "–";
+    var g = num("grams");
+    el("s-gram").textContent = g > 0 ? money(total / g) : "–";
+  }
+
+  function hot(key) {
+    el("spool").classList.toggle("hovering", !!key);
+    document.querySelectorAll("#segs .seg").forEach(function (s) { s.classList.toggle("hot", s.dataset.key === key); });
+    document.querySelectorAll("#rows li").forEach(function (l) { l.classList.toggle("hot", l.dataset.key === key); });
+  }
+
+  ids.forEach(function (id) { el(id).addEventListener("input", calc); });
+  el("currency").addEventListener("change", calc);
+  el("wearOn").addEventListener("change", calc);
+  el("reset").addEventListener("click", function () {
+    state = Object.assign({}, DEFAULTS);
+    fillInputs();
+    el("preset-note").textContent = "Reset to Hi Combo PLA defaults.";
+  });
+
+  fillInputs();
+})();
+</script>
+</body>
+</html>
